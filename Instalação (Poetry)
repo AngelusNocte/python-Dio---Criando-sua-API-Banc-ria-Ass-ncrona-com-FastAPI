@@ -1,0 +1,2 @@
+poetry init
+poetry add fastapi uvicorn sqlalchemy aiosqlite python-jose passlib bcrypt pytest pytest-asyncio httpx
