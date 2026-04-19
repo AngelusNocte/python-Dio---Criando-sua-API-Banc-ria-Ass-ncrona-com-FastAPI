@@ -1,0 +1,28 @@
+from fastapi import FastAPI, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .database import engine, Base
+from . import schemas, crud
+from .dependencies import get_db
+from .auth import create_token, verify_password
+
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+@app.post("/auth/register")
+async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    return await crud.create_user(db, user)
+
+@app.post("/auth/token")
+async def login(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = await crud.get_user(db, user.username)
+
+    if not db_user or not verify_password(user.password, db_user.password):
+        return {"error": "invalid credentials"}
+
+    token = create_token({"sub": db_user.username})
+    return {"access_token": token, "token_type": "bearer"}
